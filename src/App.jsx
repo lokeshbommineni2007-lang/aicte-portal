@@ -932,26 +932,57 @@ export default function App() {
       {/* TOP REGAL APEX BAR & MODE SELECTOR (Refined Editorial Style) */}
       <header className="relative z-10 border-b border-white/[0.08] bg-[#070b14]/90 backdrop-blur-md px-6 sm:px-10 py-3 flex flex-wrap items-center justify-between gap-4">
         
-        {/* Left: Authentic Government Title */}
+        {/* Left: Authentic Government Title & SAMANVAY Brand */}
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center shrink-0">
-            <Building2 className="w-5 h-5 text-[#f4f2ec]" />
+          {/* Official AICTE Sovereign Golden Cogwheel Emblem Badge */}
+          <div className="relative w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500/25 via-purple-500/15 to-amber-600/35 border border-amber-500/40 flex items-center justify-center shrink-0 shadow-lg shadow-amber-500/15 group cursor-pointer" title="AICTE Sovereign Seal">
+            <svg className="w-7 h-7 text-amber-500 transform transition-transform group-hover:rotate-45 duration-700" viewBox="0 0 100 100" fill="none">
+              <circle cx="50" cy="50" r="38" stroke="url(#hdrGearGold)" strokeWidth="6" fill="#181206" />
+              {[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((deg) => (
+                <rect key={deg} x="47" y="5" width="6" height="10" rx="1.5" fill="url(#hdrGearGold)" transform={`rotate(${deg} 50 50)`} />
+              ))}
+              <circle cx="50" cy="50" r="26" fill="url(#hdrGearInner)" />
+              <ellipse cx="50" cy="58" rx="13" ry="6" fill="#2563eb" />
+              <ellipse cx="50" cy="56" rx="9" ry="3.5" fill="#fbbf24" />
+              <path d="M50 34 C44 42 42 48 50 54 C58 48 56 42 50 34 Z" fill="url(#hdrFlameGrad)" />
+              <defs>
+                <linearGradient id="hdrGearGold" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+                  <stop stopColor="#fbbf24" />
+                  <stop offset="0.5" stopColor="#f59e0b" />
+                  <stop offset="1" stopColor="#d97706" />
+                </linearGradient>
+                <linearGradient id="hdrGearInner" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+                  <stop stopColor="#fffbeb" />
+                  <stop offset="1" stopColor="#fef3c7" />
+                </linearGradient>
+                <linearGradient id="hdrFlameGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop stopColor="#fef08a" />
+                  <stop offset="0.6" stopColor="#f97316" />
+                  <stop offset="1" stopColor="#ef4444" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white flex items-center justify-center">
+              <span className="w-1 h-1 bg-white rounded-full"></span>
+            </span>
           </div>
+
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold tracking-tight text-white">
-                All India Council for Technical Education
+              <span className="text-sm font-black tracking-tight text-white flex items-center gap-1.5">
+                <span>SAMANVAY</span>
+                <span className="text-[11px] font-normal text-purple-400 font-sans">(समन्वय)</span>
               </span>
-              <span className="text-slate-600">|</span>
-              <span className="text-[11px] text-[#a1a1aa] font-normal">
-                Ministry of Education, Government of India
+              <span className="text-slate-500">|</span>
+              <span className="text-[11px] text-slate-300 font-normal hidden sm:inline">
+                AICTE Central Monitoring & Grievance Portal
               </span>
               <span className="text-[9px] font-mono bg-[#2f5bff]/20 text-[#2f5bff] border border-[#2f5bff]/30 px-2 py-0.5 rounded uppercase font-bold hidden md:inline">
                 APH 2026–27 COMPLIANT
               </span>
             </div>
             <p className="text-[10px] text-slate-500 font-mono tracking-wider">
-              REGULATORY BUREAU (RB) & PUBLIC GRIEVANCE REDRESSAL CELL (PGRC) // DUAL-SYNC ENGINE
+              REGULATORY BUREAU (RB) & PUBLIC GRIEVANCE REDRESSAL CELL (PGRC) // DUAL-SYNC
             </p>
           </div>
         </div>
@@ -1076,13 +1107,20 @@ export default function App() {
           
           {/* Editorial Luxury Header (oyin.design vibe) */}
           <div className="text-center space-y-3 pt-2">
-            <span className="text-[10px] font-mono tracking-widest text-[#a1a1aa] uppercase px-3 py-1 rounded-full bg-white/[0.04] border border-white/10">
-              CITIZEN & STUDENT REGULATORY DISPENSATION
+            <span className="text-[10px] font-mono tracking-widest text-purple-700 dark:text-purple-300 uppercase px-3.5 py-1.5 rounded-full bg-purple-500/15 border border-purple-500/30 font-bold shadow-sm inline-block">
+              SAMANVAY // CITIZEN & STUDENT REGULATORY DISPENSATION
             </span>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#f4f2ec]">
-              National Technical Student Grievance Portal
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight flex items-center justify-center gap-2.5 flex-wrap">
+              <span className="bg-gradient-to-r from-purple-700 via-indigo-600 to-purple-900 bg-clip-text text-transparent drop-shadow-sm font-black">
+                SAMANVAY
+              </span>
+              <span className="text-xl sm:text-2xl font-bold text-purple-600 font-sans">(समन्वय)</span>
+              <span className="text-slate-400 font-light hidden sm:inline">|</span>
+              <span className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white">
+                National Student Grievance Portal
+              </span>
             </h1>
-            <p className="text-xs sm:text-sm text-slate-400 max-w-xl mx-auto font-light leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-xl mx-auto font-medium leading-relaxed">
               Administered under the statutory <strong>AICTE (Redressal of Grievance of Students) Regulations, 2019</strong>.
               Every submission is cryptographically assigned a tracking number and auto-triaged to the Public Grievance Redressal Cell (PGRC).
             </p>
@@ -1683,16 +1721,31 @@ export default function App() {
           
           {/* Header Title */}
           <div className="text-center space-y-3 pt-2">
-            <span className="text-[10px] font-mono tracking-widest text-purple-600 uppercase px-3.5 py-1 rounded-full bg-purple-500/10 border border-purple-500/25 font-bold">
-              OFFICIAL BUREAU ACCESS // SECURE SSO GATEWAY
+            <span className="text-[10px] font-mono tracking-widest text-purple-700 dark:text-purple-300 uppercase px-3.5 py-1.5 rounded-full bg-purple-500/15 border border-purple-500/30 font-bold shadow-sm inline-block">
+              SAMANVAY // OFFICIAL BUREAU ACCESS & SSO GATEWAY
             </span>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#f4f2ec]">
-              AICTE Internal Officer Command Portal
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight flex items-center justify-center gap-2.5 flex-wrap">
+              <span className="bg-gradient-to-r from-purple-700 via-indigo-600 to-purple-900 bg-clip-text text-transparent drop-shadow-sm font-black">
+                SAMANVAY
+              </span>
+              <span className="text-xl sm:text-2xl font-bold text-purple-600 font-sans">(समन्वय)</span>
+              <span className="text-slate-400 font-light hidden sm:inline">|</span>
+              <span className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white">
+                Officer Command Portal
+              </span>
             </h1>
-            <p className="text-xs sm:text-sm text-slate-400 max-w-xl mx-auto font-light leading-relaxed">
-              Authorized personnel only. Secure single sign-on for the <strong>Regulation Bureau (RB)</strong>, 
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-xl mx-auto font-medium leading-relaxed">
+              Authorized personnel only. Integrated cross-bureau monitoring connecting the <strong>Regulation Bureau (RB)</strong>, 
               <strong>Public Grievance Redressal Cell (PGRC)</strong>, and <strong>Regional Directorate</strong>.
             </p>
+          </div>
+
+          {/* 3D AICTE SOVEREIGN EMBLEM EXCLUSIVE HERO APERTURE */}
+          <div id="aicte-hero-anchor" className="relative w-full h-[380px] my-2 flex flex-col items-center justify-end pb-2 pointer-events-none select-none">
+            <div className="px-4 py-1.5 rounded-full bg-[#0c152a]/85 border border-amber-500/40 backdrop-blur-md text-[10px] font-mono text-amber-400 tracking-wider pointer-events-auto flex items-center gap-2 shadow-xl">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+              <span className="font-bold">SAMANVAY // AICTE 3D SOVEREIGN COGWHEEL SEAL</span>
+            </div>
           </div>
 
           {/* TWO COLUMN GRID: LEFT = LOGIN FORM, RIGHT = DEMO CREDENTIALS DESK */}
@@ -1909,11 +1962,16 @@ export default function App() {
             <div className="flex flex-wrap items-end justify-between gap-6 border-b border-white/10 pb-6">
               
               <div>
-                <span className="text-[10px] font-mono text-[#a1a1aa] tracking-widest uppercase block mb-1.5">
-                  AICTE REPOSITORY // CROSS-BUREAU SYNCHRONIZATION
+                <span className="text-[10px] font-mono text-purple-400 tracking-widest uppercase block mb-1.5 font-bold">
+                  SAMANVAY REPOSITORY // CROSS-BUREAU SYNCHRONIZATION
                 </span>
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-[#f4f2ec] tracking-tight">
-                  Central Complaint & Institution Monitoring Engine
+                <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-2 flex-wrap">
+                  <span className="text-purple-400 font-extrabold">SAMANVAY</span>
+                  <span className="text-lg font-normal text-purple-300 font-sans">(समन्वय)</span>
+                  <span className="text-slate-500 font-light">|</span>
+                  <span className="text-xl sm:text-2xl font-bold text-slate-100">
+                    Central Complaint & Institution Monitoring Engine
+                  </span>
                 </h1>
                 <p className="text-xs text-slate-400 mt-1 max-w-2xl font-light">
                   Unified operational truth connecting the <strong>Regulation Bureau (RB)</strong>, 
@@ -3105,7 +3163,7 @@ export default function App() {
       {/* LUXURY REGAL FOOTER */}
       <footer className="relative z-10 bg-[#070b14]/90 border-t border-white/[0.08] text-slate-500 text-[10px] font-mono py-4 px-8 mt-auto backdrop-blur-md">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
-          <span>AICTE INTEGRATED INSTITUTION COMPLAINT MONITORING // SIH 2026</span>
+          <span className="font-bold text-slate-300">SAMANVAY (समन्वय) // AICTE CENTRAL COMPLAINT & INSTITUTION MONITORING SYSTEM</span>
           <span className="text-slate-400">ENGINE: DUAL-DB (POSTGRESQL + ELASTICSEARCH) • CAMUNDA BPMN 2.0 • 4-LAYER SYNAPTIC OVERLAP RESOLUTION</span>
         </div>
       </footer>

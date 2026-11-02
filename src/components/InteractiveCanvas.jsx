@@ -352,17 +352,14 @@ export default function InteractiveCanvas({ theme = 'purple-white' }) {
       ctx.save();
 
       // Exclusive Hero Aperture Position (Fixed resting viewport position)
-      // By using (rect.top + scrollY), the center position remains constant
-      // when the user scrolls down, so the 3D logo NEVER GOES UP when scrolling!
       const anchor = document.getElementById('aicte-hero-anchor');
       let targetCX = width * 0.5;
-      let targetCY = Math.min(height * 0.44, 335);
+      let targetCY = Math.min(height * 0.38, 280);
 
       if (anchor) {
         const rect = anchor.getBoundingClientRect();
-        const docTop = rect.top + (window.scrollY || window.pageYOffset || 0);
         targetCX = rect.left + rect.width * 0.5;
-        targetCY = docTop + (rect.height - 24) * 0.5;
+        targetCY = rect.top + rect.height * 0.5;
       }
 
       currentCenterX += (targetCX - currentCenterX) * 0.12;
@@ -372,11 +369,11 @@ export default function InteractiveCanvas({ theme = 'purple-white' }) {
       const centerY = currentCenterY;
 
       // Responsive emblem sizing (Enlarged prominent sovereign scale)
-      const emblemScale = Math.min(1.0, Math.max(0.78, width / 1150));
+      const emblemScale = Math.min(0.92, Math.max(0.72, width / 1280));
       const NUM_TEETH = 16;
-      const R_ROOT = 186 * emblemScale;
-      const R_TIP = 245 * emblemScale;
-      const Z_THICK = 16 * emblemScale;
+      const R_ROOT = 175 * emblemScale;
+      const R_TIP = 230 * emblemScale;
+      const Z_THICK = 15 * emblemScale;
 
       // 3D Parallax & Smooth Responsive Tilt
       const targetRotY = (mouse.x - width * 0.5) * 0.00075 + Math.sin(time * 0.35) * 0.07;
