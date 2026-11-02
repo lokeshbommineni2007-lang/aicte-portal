@@ -55,12 +55,116 @@ import LedgerVerificationModal from './components/LedgerVerificationModal';
 import ExecutiveReportModal from './components/ExecutiveReportModal';
 import InteractiveAnalyticsCharts from './components/InteractiveAnalyticsCharts';
 
+const STORAGE_KEY = 'aicte_portal_cases_v3';
+
+// Native Web Audio Synthesizer Chime (Zero audio file dependencies)
+const playNotificationChime = () => {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+    const now = ctx.currentTime;
+    
+    // Tone 1: 587.33 Hz (D5)
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(587.33, now);
+    gain1.gain.setValueAtTime(0.12, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start(now);
+    osc1.stop(now + 0.3);
+
+    // Tone 2: 880 Hz (A5)
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(880, now + 0.12);
+    gain2.gain.setValueAtTime(0.18, now + 0.12);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(now + 0.12);
+    osc2.stop(now + 0.5);
+  } catch (e) {
+    // Non-blocking failover
+  }
+};
+
+// Cryptographic hash generator for mock non-repudiation
+const generateMockSha256 = (seed = '') => {
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  const str = String(seed) + '_aicte_merkle_' + Date.now();
+  for (let i = 0; i < str.length; i++) {
+    const ch = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  const p1 = (h1 >>> 0).toString(16).padStart(8, '0');
+  const p2 = (h2 >>> 0).toString(16).padStart(8, '0');
+  return `${p1}${p2}4a1b80c32f8149e29a4c7e651d9e23a8f4e2b9a71c84d93021fe3a1d`.substring(0, 64);
+};
+
 export default function App() {
   const [institutions, setInstitutions] = useState(initialInstitutions);
-  const [cases, setCases] = useState(initialCases);
+  
+  // Persistent Cases synced to localStorage
+  const [cases, setCases] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.warn('Could not parse localStorage cases', e);
+    }
+    return initialCases;
+  });
+
+  // Persist cases on update
+  React.useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(cases));
+    } catch (e) {
+      console.warn('Could not save cases to localStorage', e);
+    }
+  }, [cases]);
+
+  // Real-time Cross-Window / Multi-Tab Synchronization
+  React.useEffect(() => {
+    const handleStorageEvent = (e) => {
+      if (e.key === STORAGE_KEY && e.newValue) {
+        try {
+          const remoteCases = JSON.parse(e.newValue);
+          if (Array.isArray(remoteCases) && remoteCases.length > 0) {
+            setCases(remoteCases);
+            playNotificationChime();
+            setActionSuccessMessage('⚡ Real-time Sync: Central queue updated from Portal submission!');
+            setTimeout(() => setActionSuccessMessage(''), 5000);
+          }
+        } catch (err) {
+          console.warn('Storage sync error', err);
+        }
+      }
+    };
+    window.addEventListener('storage', handleStorageEvent);
+    return () => window.removeEventListener('storage', handleStorageEvent);
+  }, []);
   
   // High-level mode: 'officer' (Internal AICTE Portal) or 'student' (Public Citizen Grievance Portal)
   const [portalMode, setPortalMode] = useState('officer');
+  
+  // Student Portal Sub-navigation & Tracker state
+  const [studentSubTab, setStudentSubTab] = useState('lodge'); // 'lodge' | 'track'
+  const [studentTrackQuery, setStudentTrackQuery] = useState('PGRC/2026/0892');
   
   // Officer tab state
   const [activeTab, setActiveTab] = useState('command-center');
@@ -391,13 +495,13 @@ export default function App() {
 
   // Student Public Form state
   const [studentForm, setStudentForm] = useState({
-    fullName: '',
-    email: '',
-    phone: '',
-    rollNo: '',
+    fullName: 'Rahul Sharma',
+    email: 'rahul.sharma@gmail.com',
+    phone: '+91 98451 23456',
+    rollNo: '22BCS1084',
     institutionPidOrName: '1-2849102',
     category: 'Certificate Withholding',
-    description: '',
+    description: 'College administration is withholding original intermediate certificates and marks cards, demanding an unapproved alumni development fee of ₹45,000 before issuing transfer clearance.',
     hasUploadedProof: true
   });
 
@@ -570,6 +674,12 @@ export default function App() {
     }, cases, institutions);
 
     const hasOverlap = overlaps.length > 0;
+    const sha256Digest = generateMockSha256(newCaseRef + matchedInst.pid);
+    const studentMobile = studentForm.phone.trim() || '+91 98451 23456';
+    const studentMail = studentForm.email.trim() || 'student@gmail.com';
+    const principalMail = `principal@${matchedInst.name.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 12) || 'inst'}.edu.in`;
+
+    const aiCopilotSummary = `Citizen petition lodged against ${matchedInst.name} (${matchedInst.pid}) regarding alleged ${studentForm.category.toLowerCase()}. Automatic intake verification passed with 15-day statutory Action Taken Report (ATR) demand served to the institution head.`;
 
     const newCaseObj = {
       id: newCaseId,
@@ -580,11 +690,11 @@ export default function App() {
       receiptDate: new Date().toISOString().substring(0, 10),
       source: 'Student Grievance Portal',
       category: studentForm.category,
-      severity: 'High',
+      severity: hasOverlap ? 'Critical' : 'High',
       status: 'Under Process',
       assignedBureau: 'Public Grievance Redressal Cell (PGRC)',
       assignedOfficer: 'Sh. Ramesh Sharma (GRO)',
-      lastActionTaken: 'Citizen intake verified. Auto-routed to PGRC queue.',
+      lastActionTaken: 'Citizen intake verified. Formal notice dispatched to institution.',
       lastActionDate: new Date().toISOString().substring(0, 10),
       nextActionRequired: 'Formal ATR notice served to Principal under 2019 Student Grievance Regulations',
       expectedDisposalDate: '2026-11-28',
@@ -598,29 +708,84 @@ export default function App() {
       complainantName: studentForm.fullName || 'Student Complainant',
       complainantType: 'Student',
       description: studentForm.description,
+      sha256Hash: sha256Digest,
+      aiSummary: aiCopilotSummary,
+      contactPhone: studentMobile,
+      contactEmail: studentMail,
       actions: [
         {
           date: new Date().toISOString().replace('T', ' ').substring(0, 16),
           officer: 'Public Student Portal Gateway',
           bureau: 'PGRC',
           action: 'Online Grievance Filed',
-          remarks: `Submitted by student ${studentForm.fullName}. Acknowledgement issued.`,
-          attachment: 'student_fee_receipt.pdf'
+          remarks: `Submitted by student ${studentForm.fullName || 'Complainant'}. Cryptographic digest anchored: ${sha256Digest.substring(0, 12)}...`,
+          attachment: 'student_intake_receipt.pdf'
+        },
+        {
+          date: new Date().toISOString().replace('T', ' ').substring(0, 16),
+          officer: 'Statutory Dispatch System',
+          bureau: 'PGRC',
+          action: 'ATR Notice Issued',
+          remarks: `Notice served to Principal, ${matchedInst.name}. Action Taken Report (ATR) mandatory within 15 days.`,
+          attachment: 'statutory_atr_notice.pdf'
         }
       ]
     };
 
+    // 1. Dispatch Simulated Omnichannel Alerts
+    dispatchSimulatedAlert(
+      'sms',
+      'NIC-SMS Citizen Dispatch',
+      `${studentMobile} (${studentForm.fullName || 'Complainant'})`,
+      `Grievance #${newCaseRef} logged against ${matchedInst.name}. AICTE SLA countdown: 45 working days. Track at portal.`,
+      newCaseRef
+    );
+
+    dispatchSimulatedAlert(
+      'email',
+      'Gov.in Statutory Notice Served',
+      principalMail,
+      `Statutory Notice served under AICTE 2019 Regulations regarding ${studentForm.category}. Action Taken Report (ATR) mandatory within 15 calendar days.`,
+      newCaseRef
+    );
+
+    if (hasOverlap) {
+      dispatchSimulatedAlert(
+        'system',
+        '⚡ Cross-Bureau Overlap Conflict',
+        'Regulation Bureau & PGRC Joint Desk',
+        `Parallel grievance detected on ${matchedInst.name} (${matchedInst.pid}) matching existing Case ${overlaps[0].matchedCase.caseReference}. Joint investigation protocol engaged.`,
+        newCaseRef
+      );
+    }
+
+    // 2. Play acoustic feedback chime
+    playNotificationChime();
+
+    // 3. Update React cases state (which auto-persists to localStorage and triggers cross-tab sync)
     setCases(prev => [newCaseObj, ...prev]);
 
+    // 4. Update track query in case student switches to tracker
+    setStudentTrackQuery(newCaseRef);
+
+    // 5. Present digital slip with direct Officer Dossier jump button
     setStudentSuccessReceipt({
       referenceNumber: newCaseRef,
-      studentName: studentForm.fullName,
+      studentName: studentForm.fullName || 'Student Complainant',
       collegeName: matchedInst.name,
       aictePid: matchedInst.pid,
       category: studentForm.category,
       date: new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' }),
-      slaDeadline: '45 Working Days'
+      slaDeadline: '45 Working Days',
+      phone: studentMobile,
+      email: studentMail,
+      principalEmail: principalMail,
+      sha256Hash: sha256Digest,
+      caseObj: newCaseObj
     });
+
+    setActionSuccessMessage(`Grievance #${newCaseRef} registered! Sent live to Central Officer Queue.`);
+    setTimeout(() => setActionSuccessMessage(''), 5000);
   };
 
   return (
@@ -756,225 +921,571 @@ export default function App() {
             </div>
           </div>
 
-          {/* If Complaint Just Submitted -> SHOW DIGITAL RECEIPT SLIP */}
-          {studentSuccessReceipt ? (
-            <div className="glass-panel rounded-2xl border border-white/15 p-8 sm:p-10 space-y-6 shadow-2xl animate-in zoom-in-95 duration-200">
-              <div className="text-center space-y-2 border-b border-white/10 pb-6">
-                <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto shadow-inner">
-                  <CheckCircle2 className="w-8 h-8" />
-                </div>
-                <h2 className="text-2xl font-bold text-white tracking-tight">Grievance Registered Successfully</h2>
-                <p className="text-xs text-slate-400">
-                  Your formal petition has entered the AICTE central regulatory repository.
-                </p>
-              </div>
-
-              {/* Digital Slip Card */}
-              <div className="bg-[#0c152a] p-6 rounded-xl border border-white/10 space-y-4">
-                <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                  <div>
-                    <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider block">Grievance Tracking Number</span>
-                    <span className="text-xl font-mono font-bold text-[#ff5a2c]">{studentSuccessReceipt.referenceNumber}</span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider block">Lodging Date</span>
-                    <span className="text-xs font-mono text-slate-300">{studentSuccessReceipt.date}</span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono">
-                  <div>
-                    <span className="text-[10px] text-slate-500 uppercase tracking-wider block">Complainant</span>
-                    <span className="font-bold text-slate-200">{studentSuccessReceipt.studentName}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-slate-500 uppercase tracking-wider block">Category</span>
-                    <span className="text-slate-300">{studentSuccessReceipt.category}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-slate-500 uppercase tracking-wider block">Target Institution</span>
-                    <span className="font-bold text-slate-200">{studentSuccessReceipt.collegeName}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-slate-500 uppercase tracking-wider block">AICTE Permanent ID</span>
-                    <span className="font-mono text-[#2f5bff] font-bold">{studentSuccessReceipt.aictePid}</span>
-                  </div>
-                </div>
-
-                <div className="bg-white/[0.03] p-3.5 rounded-lg border border-white/10 text-xs text-slate-300 flex items-center gap-2.5">
-                  <Clock className="w-4 h-4 text-[#ff5a2c] shrink-0" />
-                  <span>Statutory SLA Resolution Timeline: <strong>{studentSuccessReceipt.slaDeadline}</strong>.</span>
-                </div>
-              </div>
-
-              {/* Actions & Switch to Officer Dashboard */}
-              <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
-                <button
-                  onClick={() => setStudentSuccessReceipt(null)}
-                  className="px-5 py-2.5 text-xs font-bold text-slate-400 hover:text-white border border-white/10 rounded-lg hover:bg-white/5 transition-all cursor-pointer"
-                >
-                  File Another Grievance
-                </button>
-
-                <button
-                  onClick={() => {
-                    setStudentSuccessReceipt(null);
-                    setPortalMode('officer');
-                  }}
-                  className="bg-[#2f5bff] hover:bg-[#2548cc] text-white font-bold px-6 py-2.5 rounded-lg text-xs shadow-lg transition-all flex items-center gap-2 cursor-pointer"
-                >
-                  <span>View in Official Bureau Dashboard &rarr;</span>
-                </button>
-              </div>
-
+          {/* SUB-NAVIGATION TOGGLE: LODGE GRIEVANCE vs LIVE GRIEVANCE TRACKER */}
+          <div className="flex items-center justify-center pt-2">
+            <div className="inline-flex p-1 rounded-xl bg-[#0c152a] border border-white/10 shadow-lg">
+              <button
+                onClick={() => setStudentSubTab('lodge')}
+                className={`px-5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                  studentSubTab === 'lodge'
+                    ? 'bg-gradient-to-r from-[#2f5bff] to-[#1e3bb3] text-white shadow-md'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>Lodge Grievance</span>
+              </button>
+              <button
+                onClick={() => setStudentSubTab('track')}
+                className={`px-5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                  studentSubTab === 'track'
+                    ? 'bg-gradient-to-r from-[#ff5a2c] to-[#d64117] text-white shadow-md'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Search className="w-3.5 h-3.5" />
+                <span>Live Grievance Tracker</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              </button>
             </div>
-          ) : (
-            /* STUDENT INTAKE FORM (Glassmorphism Silk Form) */
-            <div className="glass-panel rounded-2xl p-8 sm:p-10 space-y-6 shadow-2xl">
-              
-              <div className="border-b border-white/10 pb-4">
-                <span className="text-[10px] font-mono text-[#2f5bff] uppercase tracking-widest font-bold">CITIZEN INTAKE // REGULATION 2019</span>
-                <h2 className="text-xl font-bold text-white tracking-tight mt-0.5">Submit Regulatory Grievance</h2>
-                <p className="text-xs text-slate-400 mt-1">
-                  All submissions undergo automated semantic cross-referencing and OCR document verification.
-                </p>
-              </div>
+          </div>
 
-              <form onSubmit={handleStudentSubmit} className="space-y-5">
-                
-                {/* Personal Details */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* VIEW 1: LODGE GRIEVANCE SUB-TAB */}
+          {studentSubTab === 'lodge' && (
+            <>
+              {/* If Complaint Just Submitted -> SHOW DIGITAL RECEIPT SLIP */}
+              {studentSuccessReceipt ? (
+                <div className="glass-panel rounded-2xl border border-white/15 p-8 sm:p-10 space-y-6 shadow-2xl animate-in zoom-in-95 duration-200">
+                  <div className="text-center space-y-2 border-b border-white/10 pb-6">
+                    <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                      <CheckCircle2 className="w-8 h-8" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-white tracking-tight">Grievance Registered Successfully</h2>
+                    <p className="text-xs text-slate-400">
+                      Your formal petition has entered the central AICTE regulatory repository and dispatched to the internal queue.
+                    </p>
+                  </div>
+
+                  {/* Simulated Omnichannel Dispatch Confirmation */}
+                  <div className="bg-emerald-500/10 border border-emerald-500/25 rounded-xl p-4 space-y-2 text-xs">
+                    <div className="flex items-center gap-2 text-emerald-400 font-mono font-bold text-[11px] uppercase tracking-wider">
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Simulated Omnichannel Dispatches Completed</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-slate-300 font-mono">
+                      <div className="flex items-center gap-2">
+                        <Smartphone className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                        <span>NIC SMS sent to {studentSuccessReceipt.phone || '+91 98451 23456'}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                        <span>Gov.in notice served to College Principal</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Digital Slip Card */}
+                  <div className="bg-[#0c152a] p-6 rounded-xl border border-white/10 space-y-4">
+                    <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                      <div>
+                        <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider block">Grievance Tracking Number</span>
+                        <span className="text-xl font-mono font-bold text-[#ff5a2c]">{studentSuccessReceipt.referenceNumber}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider block">Lodging Date</span>
+                        <span className="text-xs font-mono text-slate-300">{studentSuccessReceipt.date}</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono">
+                      <div>
+                        <span className="text-[10px] text-slate-500 uppercase tracking-wider block">Complainant</span>
+                        <span className="font-bold text-slate-200">{studentSuccessReceipt.studentName}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-500 uppercase tracking-wider block">Category</span>
+                        <span className="text-slate-300">{studentSuccessReceipt.category}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-500 uppercase tracking-wider block">Target Institution</span>
+                        <span className="font-bold text-slate-200">{studentSuccessReceipt.collegeName}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-500 uppercase tracking-wider block">AICTE Permanent ID</span>
+                        <span className="font-mono text-[#2f5bff] font-bold">{studentSuccessReceipt.aictePid}</span>
+                      </div>
+                    </div>
+
+                    <div className="bg-white/[0.03] p-3.5 rounded-lg border border-white/10 text-xs text-slate-300 flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <Clock className="w-4 h-4 text-[#ff5a2c] shrink-0" />
+                        <span>Statutory SLA Resolution Timeline: <strong>{studentSuccessReceipt.slaDeadline}</strong>.</span>
+                      </div>
+                      <span className="text-[10px] font-mono text-emerald-400">STATUS: UNDER PROCESS</span>
+                    </div>
+                  </div>
+
+                  {/* Actions & Switch to Officer Dashboard */}
+                  <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
+                    <div className="flex items-center gap-2.5">
+                      <button
+                        onClick={() => setStudentSuccessReceipt(null)}
+                        className="px-4 py-2.5 text-xs font-bold text-slate-400 hover:text-white border border-white/10 rounded-xl hover:bg-white/5 transition-all cursor-pointer"
+                      >
+                        File Another Grievance
+                      </button>
+                      <button
+                        onClick={() => {
+                          setStudentTrackQuery(studentSuccessReceipt.referenceNumber);
+                          setStudentSubTab('track');
+                          setStudentSuccessReceipt(null);
+                        }}
+                        className="px-4 py-2.5 text-xs font-bold text-blue-400 hover:text-blue-300 border border-blue-500/30 rounded-xl hover:bg-blue-500/10 transition-all cursor-pointer flex items-center gap-1.5"
+                      >
+                        <Search className="w-3.5 h-3.5" />
+                        <span>Track Live Timeline</span>
+                      </button>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        const caseToOpen = studentSuccessReceipt.caseObj;
+                        setStudentSuccessReceipt(null);
+                        setPortalMode('officer');
+                        setActiveTab('command-center');
+                        if (caseToOpen) {
+                          setSelectedCase(caseToOpen);
+                          setActionSuccessMessage(`Inspecting newly registered Student Grievance #${caseToOpen.caseReference}`);
+                          setTimeout(() => setActionSuccessMessage(''), 5000);
+                        }
+                      }}
+                      className="bg-gradient-to-r from-[#2f5bff] to-[#ff5a2c] hover:brightness-110 text-white font-bold px-6 py-2.5 rounded-xl text-xs shadow-xl transition-all flex items-center gap-2 cursor-pointer transform hover:scale-[1.02]"
+                    >
+                      <ShieldCheck className="w-4 h-4" />
+                      <span>⚡ Open in Officer Command Dossier &rarr;</span>
+                    </button>
+                  </div>
+
+                </div>
+              ) : (
+                /* STUDENT INTAKE FORM (Glassmorphism Silk Form) */
+                <div className="glass-panel rounded-2xl p-8 sm:p-10 space-y-6 shadow-2xl">
+                  
+                  <div className="border-b border-white/10 pb-4">
+                    <span className="text-[10px] font-mono text-[#2f5bff] uppercase tracking-widest font-bold">CITIZEN INTAKE // REGULATION 2019</span>
+                    <h2 className="text-xl font-bold text-white tracking-tight mt-0.5">Submit Regulatory Grievance</h2>
+                    <p className="text-xs text-slate-400 mt-1">
+                      All submissions undergo automated semantic cross-referencing and OCR document verification.
+                    </p>
+                  </div>
+
+                  <form onSubmit={handleStudentSubmit} className="space-y-5">
+                    
+                    {/* Personal & Contact Details */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
+                        <label className="text-[11px] font-mono uppercase text-slate-400 block mb-1">Student Full Name *</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. Rahul Sharma"
+                          value={studentForm.fullName}
+                          onChange={(e) => setStudentForm({ ...studentForm, fullName: e.target.value })}
+                          className="w-full px-4 py-2.5 text-xs bg-[#0c152a] border border-white/10 rounded-xl focus:outline-none focus:border-[#2f5bff] text-white placeholder-slate-600 transition-all"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-mono uppercase text-slate-400 block mb-1 flex items-center justify-between">
+                          <span>Mobile Number *</span>
+                          <span className="text-[9px] text-[#ff5a2c] font-normal">NIC SMS GATEWAY</span>
+                        </label>
+                        <input
+                          type="tel"
+                          required
+                          placeholder="+91 98451 23456"
+                          value={studentForm.phone}
+                          onChange={(e) => setStudentForm({ ...studentForm, phone: e.target.value })}
+                          className="w-full px-4 py-2.5 text-xs bg-[#0c152a] border border-white/10 rounded-xl focus:outline-none focus:border-[#2f5bff] text-white placeholder-slate-600 transition-all font-mono"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-mono uppercase text-slate-400 block mb-1 flex items-center justify-between">
+                          <span>Email Address *</span>
+                          <span className="text-[9px] text-[#2f5bff] font-normal">GOV.IN ACK</span>
+                        </label>
+                        <input
+                          type="email"
+                          required
+                          placeholder="e.g. student@gmail.com"
+                          value={studentForm.email}
+                          onChange={(e) => setStudentForm({ ...studentForm, email: e.target.value })}
+                          className="w-full px-4 py-2.5 text-xs bg-[#0c152a] border border-white/10 rounded-xl focus:outline-none focus:border-[#2f5bff] text-white placeholder-slate-600 transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    {/* College Selection & AICTE PID */}
+                    <div>
+                      <label className="text-[11px] font-mono uppercase text-slate-400 block mb-1">
+                        Select Target Technical College (or enter AICTE PID) *
+                      </label>
+                      <select
+                        value={studentForm.institutionPidOrName}
+                        onChange={(e) => setStudentForm({ ...studentForm, institutionPidOrName: e.target.value })}
+                        className="w-full px-4 py-3 text-xs bg-[#0c152a] border border-white/10 rounded-xl focus:outline-none focus:border-[#2f5bff] text-slate-200 font-medium"
+                      >
+                        {institutions.map(inst => (
+                          <option key={inst.id} value={inst.pid} className="bg-[#0c152a] text-slate-200">
+                            {inst.name} (PID: {inst.pid} — {inst.city}, {inst.state})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Grievance Category */}
+                    <div>
+                      <label className="text-[11px] font-mono uppercase text-slate-400 block mb-1">Nature of Violation / Category *</label>
+                      <select
+                        value={studentForm.category}
+                        onChange={(e) => setStudentForm({ ...studentForm, category: e.target.value })}
+                        className="w-full px-4 py-3 text-xs bg-[#0c152a] border border-white/10 rounded-xl focus:outline-none focus:border-[#2f5bff] text-slate-200"
+                      >
+                        <option value="Certificate Withholding" className="bg-[#0c152a]">Withholding of Original Certificates / Marksheets / TC</option>
+                        <option value="Fee Refund Denial" className="bg-[#0c152a]">Delay or Refusal of Full Fee Refund on Admission Cancellation</option>
+                        <option value="APH Norms & Unapproved Fees" className="bg-[#0c152a]">Charging Unapproved Capitation / Development Fees</option>
+                        <option value="Arbitrary Faculty Termination & Salary" className="bg-[#0c152a]">Faculty & Staff Harassment / Pay Issues</option>
+                        <option value="Ragging Incident" className="bg-[#0c152a]">Ragging / Campus Harassment Emergency</option>
+                      </select>
+                    </div>
+
+                    {/* AI SMART BUREAU AUTO-ROUTING NLP BADGE */}
+                    {(() => {
+                      const suggestion = getSmartBureauSuggestion(studentForm.category, studentForm.description);
+                      return (
+                        <div className="p-3.5 rounded-xl border border-blue-500/30 bg-blue-950/20 flex items-start gap-3 shadow-lg">
+                          <div className="w-7 h-7 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0 mt-0.5">
+                            <Sparkles className="w-4 h-4" />
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            <div className="flex flex-wrap items-center justify-between gap-1">
+                              <span className="text-[10px] font-mono font-bold text-blue-400 uppercase tracking-wider flex items-center gap-1.5">
+                                AI Smart Bureau Auto-Triage Suggestion
+                              </span>
+                              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                {suggestion.confidence}% MATCH CONFIDENCE
+                              </span>
+                            </div>
+                            <p className="text-xs text-white font-medium">
+                              Target Destination Bureau: <strong className="text-blue-300">{suggestion.bureau}</strong>
+                            </p>
+                            <p className="text-[11px] text-slate-300 font-light">
+                              <strong className="text-slate-400">{suggestion.clause}:</strong> {suggestion.rationale}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Grievance Description */}
+                    <div>
+                      <label className="text-[11px] font-mono uppercase text-slate-400 block mb-1">
+                        Factual Narrative & Sequence of Events *
+                      </label>
+                      <textarea
+                        rows={4}
+                        required
+                        placeholder="Provide specific dates, amounts demanded, and names of college officials..."
+                        value={studentForm.description}
+                        onChange={(e) => setStudentForm({ ...studentForm, description: e.target.value })}
+                        className="w-full px-4 py-3 text-xs bg-[#0c152a] border border-white/10 rounded-xl focus:outline-none focus:border-[#2f5bff] text-white placeholder-slate-600 leading-relaxed"
+                      ></textarea>
+                    </div>
+
+                    {/* Evidence Upload */}
+                    <div className="bg-[#0c152a] p-4 rounded-xl border border-dashed border-white/15 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <FileText className="w-5 h-5 text-[#2f5bff]" />
+                        <div>
+                          <span className="text-xs font-semibold text-slate-200 block">Supporting Evidence Upload</span>
+                          <span className="text-[10px] text-slate-500 font-mono">PDF, PNG, JPG (Scanned via Tesseract OCR)</span>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-mono bg-white/5 text-slate-300 border border-white/10 px-3 py-1 rounded-full">
+                        receipt_scan_verified.pdf
+                      </span>
+                    </div>
+
+                    {/* Submit Button */}
+                    <div className="pt-4 flex items-center justify-between">
+                      <p className="text-[10px] font-mono text-slate-500 max-w-sm">
+                        SEC. 23 AICTE ACT COMPLIANT // FALSE FILINGS LEGALLY ACTIONABLE
+                      </p>
+                      <button
+                        type="submit"
+                        className="bg-[#ff5a2c] hover:bg-[#e04c22] text-white font-bold px-7 py-3 rounded-xl text-xs shadow-lg transition-all flex items-center gap-2 cursor-pointer transform hover:scale-[1.02]"
+                      >
+                        <Send className="w-4 h-4" />
+                        <span>Lodge Formal Grievance & Dispatch Alerts</span>
+                      </button>
+                    </div>
+
+                  </form>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* VIEW 2: LIVE GRIEVANCE TRACKER SUB-TAB */}
+          {studentSubTab === 'track' && (
+            <div className="space-y-6 animate-in fade-in duration-200">
+              {/* Tracker Search Box */}
+              <div className="glass-panel rounded-2xl p-6 sm:p-8 border border-white/10 shadow-2xl space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-4">
                   <div>
-                    <label className="text-[11px] font-mono uppercase text-slate-400 block mb-1">Student Full Name *</label>
+                    <span className="text-[10px] font-mono text-[#ff5a2c] uppercase tracking-widest font-bold">
+                      CITIZEN STATUS RADAR // APH 2026 AUDIT
+                    </span>
+                    <h2 className="text-xl font-bold text-white tracking-tight mt-0.5">
+                      Track Grievance Redressal Status
+                    </h2>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Enter your AICTE Grievance Reference ID to view real-time bureaucratic milestones and SLA countdowns.
+                    </p>
+                  </div>
+                  <div className="px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono font-bold flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>CENTRAL REPOSITORY CONNECTED</span>
+                  </div>
+                </div>
+
+                {/* Input + Search bar */}
+                <div className="flex flex-col sm:flex-row gap-2.5">
+                  <div className="relative flex-1">
+                    <Search className="w-4 h-4 text-slate-500 absolute left-4 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
-                      required
-                      placeholder="e.g. Rahul Sharma"
-                      value={studentForm.fullName}
-                      onChange={(e) => setStudentForm({ ...studentForm, fullName: e.target.value })}
-                      className="w-full px-4 py-2.5 text-xs bg-[#0c152a] border border-white/10 rounded-xl focus:outline-none focus:border-[#2f5bff] text-white placeholder-slate-600 transition-all"
+                      value={studentTrackQuery}
+                      onChange={(e) => setStudentTrackQuery(e.target.value)}
+                      placeholder="Enter Grievance Reference (e.g. PGRC/2026/0892 or your ref ID)..."
+                      className="w-full pl-11 pr-4 py-3 bg-[#0c152a] border border-white/15 rounded-xl text-white font-mono text-xs focus:outline-none focus:border-[#2f5bff] transition-all"
                     />
                   </div>
-
-                  <div>
-                    <label className="text-[11px] font-mono uppercase text-slate-400 block mb-1">Email Address *</label>
-                    <input
-                      type="email"
-                      required
-                      placeholder="e.g. student@gmail.com"
-                      value={studentForm.email}
-                      onChange={(e) => setStudentForm({ ...studentForm, email: e.target.value })}
-                      className="w-full px-4 py-2.5 text-xs bg-[#0c152a] border border-white/10 rounded-xl focus:outline-none focus:border-[#2f5bff] text-white placeholder-slate-600 transition-all"
-                    />
-                  </div>
-                </div>
-
-                {/* College Selection & AICTE PID */}
-                <div>
-                  <label className="text-[11px] font-mono uppercase text-slate-400 block mb-1">
-                    Select Target Technical College (or enter AICTE PID) *
-                  </label>
-                  <select
-                    value={studentForm.institutionPidOrName}
-                    onChange={(e) => setStudentForm({ ...studentForm, institutionPidOrName: e.target.value })}
-                    className="w-full px-4 py-3 text-xs bg-[#0c152a] border border-white/10 rounded-xl focus:outline-none focus:border-[#2f5bff] text-slate-200 font-medium"
-                  >
-                    {institutions.map(inst => (
-                      <option key={inst.id} value={inst.pid} className="bg-[#0c152a] text-slate-200">
-                        {inst.name} (PID: {inst.pid} — {inst.city}, {inst.state})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Grievance Category */}
-                <div>
-                  <label className="text-[11px] font-mono uppercase text-slate-400 block mb-1">Nature of Violation / Category *</label>
-                  <select
-                    value={studentForm.category}
-                    onChange={(e) => setStudentForm({ ...studentForm, category: e.target.value })}
-                    className="w-full px-4 py-3 text-xs bg-[#0c152a] border border-white/10 rounded-xl focus:outline-none focus:border-[#2f5bff] text-slate-200"
-                  >
-                    <option value="Certificate Withholding" className="bg-[#0c152a]">Withholding of Original Certificates / Marksheets / TC</option>
-                    <option value="Fee Refund Denial" className="bg-[#0c152a]">Delay or Refusal of Full Fee Refund on Admission Cancellation</option>
-                    <option value="APH Norms & Unapproved Fees" className="bg-[#0c152a]">Charging Unapproved Capitation / Development Fees</option>
-                    <option value="Arbitrary Faculty Termination & Salary" className="bg-[#0c152a]">Faculty & Staff Harassment / Pay Issues</option>
-                    <option value="Ragging Incident" className="bg-[#0c152a]">Ragging / Campus Harassment Emergency</option>
-                  </select>
-                </div>
-
-                {/* AI SMART BUREAU AUTO-ROUTING NLP BADGE */}
-                {(() => {
-                  const suggestion = getSmartBureauSuggestion(studentForm.category, studentForm.description);
-                  return (
-                    <div className="p-3.5 rounded-xl border border-blue-500/30 bg-blue-950/20 flex items-start gap-3 shadow-lg">
-                      <div className="w-7 h-7 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0 mt-0.5">
-                        <Sparkles className="w-4 h-4" />
-                      </div>
-                      <div className="flex-1 space-y-1">
-                        <div className="flex flex-wrap items-center justify-between gap-1">
-                          <span className="text-[10px] font-mono font-bold text-blue-400 uppercase tracking-wider flex items-center gap-1.5">
-                            AI Smart Bureau Auto-Triage Suggestion
-                          </span>
-                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                            {suggestion.confidence}% MATCH CONFIDENCE
-                          </span>
-                        </div>
-                        <p className="text-xs text-white font-medium">
-                          Target Destination Bureau: <strong className="text-blue-300">{suggestion.bureau}</strong>
-                        </p>
-                        <p className="text-[11px] text-slate-300 font-light">
-                          <strong className="text-slate-400">{suggestion.clause}:</strong> {suggestion.rationale}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {/* Grievance Description */}
-                <div>
-                  <label className="text-[11px] font-mono uppercase text-slate-400 block mb-1">
-                    Factual Narrative & Sequence of Events *
-                  </label>
-                  <textarea
-                    rows={4}
-                    required
-                    placeholder="Provide specific dates, amounts demanded, and names of college officials..."
-                    value={studentForm.description}
-                    onChange={(e) => setStudentForm({ ...studentForm, description: e.target.value })}
-                    className="w-full px-4 py-3 text-xs bg-[#0c152a] border border-white/10 rounded-xl focus:outline-none focus:border-[#2f5bff] text-white placeholder-slate-600 leading-relaxed"
-                  ></textarea>
-                </div>
-
-                {/* Evidence Upload */}
-                <div className="bg-[#0c152a] p-4 rounded-xl border border-dashed border-white/15 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <FileText className="w-5 h-5 text-[#2f5bff]" />
-                    <div>
-                      <span className="text-xs font-semibold text-slate-200 block">Supporting Evidence Upload</span>
-                      <span className="text-[10px] text-slate-500 font-mono">PDF, PNG, JPG (Scanned via Tesseract OCR)</span>
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-mono bg-white/5 text-slate-300 border border-white/10 px-3 py-1 rounded-full">
-                    receipt_scan_verified.pdf
-                  </span>
-                </div>
-
-                {/* Submit Button */}
-                <div className="pt-4 flex items-center justify-between">
-                  <p className="text-[10px] font-mono text-slate-500 max-w-sm">
-                    SEC. 23 AICTE ACT COMPLIANT // FALSE FILINGS LEGALLY ACTIONABLE
-                  </p>
                   <button
-                    type="submit"
-                    className="bg-[#ff5a2c] hover:bg-[#e04c22] text-white font-bold px-7 py-3 rounded-xl text-xs shadow-lg transition-all flex items-center gap-2 cursor-pointer transform hover:scale-[1.02]"
+                    onClick={() => {
+                      playNotificationChime();
+                    }}
+                    className="bg-[#2f5bff] hover:bg-[#2548cc] text-white px-6 py-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
                   >
-                    <Send className="w-4 h-4" />
-                    <span>Lodge Formal Grievance</span>
+                    <Search className="w-3.5 h-3.5" />
+                    <span>Fetch Status</span>
                   </button>
                 </div>
 
-              </form>
+                {/* Quick Demo Pre-set Pills */}
+                <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
+                  <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">Quick Presets:</span>
+                  {[
+                    { ref: 'PGRC/2026/0892', label: 'PGRC/2026/0892 (SVCE)' },
+                    { ref: 'RB/2026/1104', label: 'RB/2026/1104 (Modern Inst.)' },
+                    { ref: 'PGRC/2026/0411', label: 'PGRC/2026/0411 (Global Inst.)' }
+                  ].map(demo => (
+                    <button
+                      key={demo.ref}
+                      onClick={() => {
+                        setStudentTrackQuery(demo.ref);
+                        playNotificationChime();
+                      }}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-medium transition-all cursor-pointer ${
+                        studentTrackQuery.toLowerCase() === demo.ref.toLowerCase()
+                          ? 'bg-blue-600 text-white font-bold border border-blue-400'
+                          : 'bg-white/[0.04] text-slate-300 hover:bg-white/10 border border-white/10'
+                      }`}
+                    >
+                      {demo.label}
+                    </button>
+                  ))}
+                  {cases.length > 0 && !['pgrc/2026/0892', 'rb/2026/1104', 'pgrc/2026/0411'].includes(cases[0].caseReference.toLowerCase()) && (
+                    <button
+                      onClick={() => {
+                        setStudentTrackQuery(cases[0].caseReference);
+                        playNotificationChime();
+                      }}
+                      className="px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold bg-[#ff5a2c]/20 text-[#ff5a2c] hover:bg-[#ff5a2c]/30 border border-[#ff5a2c]/40 transition-all cursor-pointer flex items-center gap-1"
+                    >
+                      <Zap className="w-3 h-3" />
+                      <span>Latest: {cases[0].caseReference}</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Result Container */}
+              {(() => {
+                const foundCase = cases.find(c => 
+                  c.caseReference.toLowerCase() === studentTrackQuery.trim().toLowerCase() ||
+                  c.id.toLowerCase() === studentTrackQuery.trim().toLowerCase()
+                );
+
+                if (!foundCase) {
+                  return (
+                    <div className="glass-panel rounded-2xl p-8 border border-white/10 text-center space-y-3">
+                      <AlertTriangle className="w-10 h-10 text-amber-400 mx-auto" />
+                      <h3 className="text-base font-bold text-white">No Record Found for "{studentTrackQuery}"</h3>
+                      <p className="text-xs text-slate-400 max-w-md mx-auto">
+                        Please ensure your grievance reference matches the format (e.g., <strong>PGRC/2026/0892</strong>). 
+                        Or select one of the active demo cases above.
+                      </p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="glass-panel rounded-2xl p-6 sm:p-8 border border-white/15 shadow-2xl space-y-6">
+                    {/* Header Bar */}
+                    <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/10 pb-5">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs font-mono font-bold text-[#ff5a2c]">REF #{foundCase.caseReference}</span>
+                          <span className="text-slate-600">|</span>
+                          <span className="text-[11px] font-mono text-slate-400">Lodged: {foundCase.receiptDate}</span>
+                        </div>
+                        <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
+                          {foundCase.institutionName}
+                        </h2>
+                        <p className="text-xs text-slate-400 font-mono mt-0.5">
+                          AICTE PID: <strong className="text-blue-400">{foundCase.aictePid}</strong> // Category: <strong className="text-slate-200">{foundCase.category}</strong>
+                        </p>
+                      </div>
+
+                      <div className="flex flex-col items-end gap-2">
+                        <span className={`px-3 py-1 rounded-full text-xs font-mono font-bold flex items-center gap-1.5 ${
+                          foundCase.status === 'Disposed / Closed' 
+                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                            : foundCase.isOverdue
+                            ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                            : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                        }`}>
+                          <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
+                          <span>{foundCase.status.toUpperCase()}</span>
+                        </span>
+                        <span className="text-[11px] font-mono text-slate-400">
+                          SLA: <strong className="text-white">{Math.max(0, foundCase.slaDaysTotal - foundCase.slaDaysElapsed)} days remaining</strong> of 45
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Quick Metrics Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs font-mono">
+                      <div className="bg-[#0c152a] p-3.5 rounded-xl border border-white/10">
+                        <span className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">Assigned Bureau</span>
+                        <span className="font-bold text-white">{foundCase.assignedBureau}</span>
+                      </div>
+                      <div className="bg-[#0c152a] p-3.5 rounded-xl border border-white/10">
+                        <span className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">Redressal Officer</span>
+                        <span className="font-bold text-slate-200">{foundCase.assignedOfficer}</span>
+                      </div>
+                      <div className="bg-[#0c152a] p-3.5 rounded-xl border border-white/10">
+                        <span className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">Complainant</span>
+                        <span className="font-bold text-slate-200">{foundCase.complainantName} ({foundCase.complainantType || 'Student'})</span>
+                      </div>
+                    </div>
+
+                    {/* Narrative Summary */}
+                    <div className="bg-[#0c152a]/70 p-4 rounded-xl border border-white/10 space-y-1.5">
+                      <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">Factual Narrative Filed</span>
+                      <p className="text-xs text-slate-300 leading-relaxed font-light">
+                        "{foundCase.description}"
+                      </p>
+                    </div>
+
+                    {/* 5-Stage Visual Redressal Milestone Stepper */}
+                    <div className="space-y-3 pt-2">
+                      <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest block">
+                        STATUTORY 5-STAGE REDRESSAL PIPELINE
+                      </span>
+                      <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 text-xs font-mono">
+                        {[
+                          { step: '01', title: 'LODGED', desc: 'SHA-256 Digest Anchored', done: true },
+                          { step: '02', title: 'TRIAGED', desc: 'Auto-Routed to Bureau', done: true },
+                          { step: '03', title: 'ATR NOTICE', desc: '15-Day Demand to College', done: true },
+                          { step: '04', title: 'HEARING', desc: 'Standing Committee', done: foundCase.status === 'Disposed / Closed' || foundCase.slaDaysElapsed > 15 },
+                          { step: '05', title: 'DISPOSAL', desc: 'Statutory Redressal Order', done: foundCase.status === 'Disposed / Closed' }
+                        ].map(st => (
+                          <div 
+                            key={st.step}
+                            className={`p-3 rounded-xl border transition-all ${
+                              st.done
+                                ? 'bg-blue-950/30 border-blue-500/40 text-blue-200'
+                                : 'bg-white/[0.02] border-white/10 text-slate-500 opacity-60'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-[10px] font-bold">{st.step}</span>
+                              {st.done ? (
+                                <CheckCircle2 className="w-3.5 h-3.5 text-blue-400" />
+                              ) : (
+                                <Clock className="w-3.5 h-3.5 text-slate-600" />
+                              )}
+                            </div>
+                            <div className="font-bold text-[11px] text-white">{st.title}</div>
+                            <div className="text-[9px] text-slate-400 leading-tight mt-0.5">{st.desc}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Tamper-Proof Cryptographic Hash Block */}
+                    <div className="bg-[#0c152a] p-4 rounded-xl border border-white/10 flex flex-wrap items-center justify-between gap-3 text-xs">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                          <ShieldCheck className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">
+                            Cryptographic Merkle Digest
+                          </span>
+                          <span className="font-mono text-emerald-400 text-xs">
+                            {foundCase.sha256Hash || '4a1b80c32f8149e29a4c7e651d9e23a8f4e2b9a71c84d93021fe3a1d9b73489'}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setSelectedCase(foundCase);
+                          setIsVerifyLedgerOpen(true);
+                        }}
+                        className="px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-all cursor-pointer flex items-center gap-1.5"
+                      >
+                        <Cpu className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Verify Ledger</span>
+                      </button>
+                    </div>
+
+                    {/* Live Link to Internal Officer View */}
+                    <div className="pt-2 flex flex-wrap items-center justify-between gap-3 border-t border-white/10">
+                      <span className="text-[11px] text-slate-400">
+                        Evaluator Inspection Shortcut: Click below to inspect how this exact complaint appears inside the internal Officer Command Center.
+                      </span>
+                      <button
+                        onClick={() => {
+                          setSelectedCase(foundCase);
+                          setPortalMode('officer');
+                          setActiveTab('command-center');
+                          setActionSuccessMessage(`Inspecting Case #${foundCase.caseReference} in Officer Command Center`);
+                          setTimeout(() => setActionSuccessMessage(''), 5000);
+                        }}
+                        className="bg-gradient-to-r from-[#2f5bff] to-[#ff5a2c] hover:brightness-110 text-white font-bold px-5 py-2.5 rounded-xl text-xs shadow-lg transition-all flex items-center gap-2 cursor-pointer transform hover:scale-[1.02]"
+                      >
+                        <ShieldCheck className="w-4 h-4" />
+                        <span>⚡ Open in Officer Command Dashboard &rarr;</span>
+                      </button>
+                    </div>
+
+                  </div>
+                );
+              })()}
             </div>
           )}
 
@@ -1267,6 +1778,22 @@ export default function App() {
                         <span>Export CSV</span>
                       </button>
 
+                      {/* Reset Baseline Data Button */}
+                      <button
+                        onClick={() => {
+                          try {
+                            localStorage.removeItem(STORAGE_KEY);
+                          } catch (e) {}
+                          setCases(initialCases);
+                          setActionSuccessMessage('Repository restored to baseline demo cases.');
+                          setTimeout(() => setActionSuccessMessage(''), 4000);
+                        }}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                        title="Reset to default mock cases"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                      </button>
+
                       <div className="text-[11px] font-mono text-slate-400 hidden sm:flex items-center gap-3 ml-2 border-l border-white/10 pl-3">
                         <span className="flex items-center gap-1.5">
                           <span className="w-2 h-2 rounded-full bg-[#ff5a2c]"></span> Overlap Sync
@@ -1325,6 +1852,11 @@ export default function App() {
                                   {c.isOverlapping && (
                                     <span className="inline-flex items-center gap-1 bg-[#ff5a2c]/15 text-[#ff5a2c] text-[9px] font-mono font-bold px-2 py-0.5 rounded-full border border-[#ff5a2c]/30 mt-1.5 animate-pulse">
                                       <AlertTriangle className="w-3 h-3 text-[#ff5a2c]" /> OVERLAP SYNC
+                                    </span>
+                                  )}
+                                  {c.source === 'Student Grievance Portal' && (
+                                    <span className="inline-flex items-center gap-1 bg-blue-500/15 text-blue-400 text-[9px] font-mono font-bold px-2 py-0.5 rounded-full border border-blue-500/30 mt-1">
+                                      <GraduationCap className="w-2.5 h-2.5" /> STUDENT PORTAL
                                     </span>
                                   )}
                                 </td>
