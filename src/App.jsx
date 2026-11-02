@@ -45,7 +45,10 @@ import {
   Smartphone,
   Mail,
   AlertOctagon,
-  ArrowUpRight
+  ArrowUpRight,
+  LogOut,
+  Key,
+  EyeOff
 } from 'lucide-react';
 import { initialInstitutions, initialCases, bureauList, categoriesList } from './data/mockData';
 import { runOverlapDetection, jaroWinklerSimilarity } from './utils/overlapEngine';
@@ -183,6 +186,106 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('command-center');
   const [currentRole, setCurrentRole] = useState('Regulation Bureau (RB) Officer');
 
+  // Officer Authentication & Demo Credentials Desk State
+  const [isOfficerLoggedIn, setIsOfficerLoggedIn] = useState(() => {
+    try {
+      const stored = sessionStorage.getItem('aicte_officer_logged_in');
+      return stored === 'true';
+    } catch (e) {
+      return false;
+    }
+  });
+
+  const [officerLoginForm, setOfficerLoginForm] = useState({
+    email: 'officer.rb@aicte.gov.in',
+    password: 'aicte@regulation2026',
+    bureau: 'Regulation Bureau (RB)',
+    showPassword: false
+  });
+  const [officerLoginError, setOfficerLoginError] = useState('');
+
+  const demoOfficerCredentials = [
+    {
+      role: 'Regulation Bureau (RB) Officer',
+      bureau: 'Regulation Bureau (RB)',
+      email: 'officer.rb@aicte.gov.in',
+      password: 'aicte@regulation2026',
+      badge: 'RB STATUTORY DESK',
+      badgeColor: 'border-amber-500/30 bg-amber-500/10 text-amber-500',
+      scope: 'Section 13 Inspections, Capitation Fees, Intake Freezes'
+    },
+    {
+      role: 'PGRC Grievance Redressal Officer',
+      bureau: 'Public Grievance Redressal Cell (PGRC)',
+      email: 'gro.pgrc@aicte.gov.in',
+      password: 'pgrc@grievance2026',
+      badge: 'PGRC CELL HEAD',
+      badgeColor: 'border-blue-500/30 bg-blue-500/10 text-blue-500',
+      scope: '2019 Student Grievances, Certificate Retention, 45-day SLA Monitor'
+    },
+    {
+      role: 'Regional Director (South-Western)',
+      bureau: 'Regional Offices (ROs)',
+      email: 'director.ro@aicte.gov.in',
+      password: 'aicte@vigilance2026',
+      badge: 'REGIONAL & VIGILANCE',
+      badgeColor: 'border-purple-500/30 bg-purple-500/10 text-purple-600',
+      scope: 'Surprise Campus Audits, Ghost Faculty Detection, Police FIR Liaison'
+    },
+    {
+      role: 'AICTE Member Secretary / Apex View',
+      bureau: 'All Bureaus',
+      email: 'ms.hq@aicte.gov.in',
+      password: 'admin@national2026',
+      badge: 'APEX EXECUTIVE DESK',
+      badgeColor: 'border-rose-500/30 bg-rose-500/10 text-rose-500',
+      scope: 'Full National Repository Control, Cross-Bureau Mergers, Override Powers'
+    }
+  ];
+
+  const handleOfficerLogin = (e) => {
+    if (e) e.preventDefault();
+    if (!officerLoginForm.email.trim() || !officerLoginForm.password.trim()) {
+      setOfficerLoginError('Please enter both Officer Email / SSO ID and Password.');
+      return;
+    }
+    setOfficerLoginError('');
+    setIsOfficerLoggedIn(true);
+    try {
+      sessionStorage.setItem('aicte_officer_logged_in', 'true');
+    } catch (err) {}
+    playNotificationChime();
+    setActionSuccessMessage(`Welcome, authenticated as ${currentRole}. Access granted.`);
+    setTimeout(() => setActionSuccessMessage(''), 5000);
+  };
+
+  const handleOfficerLogout = () => {
+    setIsOfficerLoggedIn(false);
+    try {
+      sessionStorage.removeItem('aicte_officer_logged_in');
+    } catch (err) {}
+    setActionSuccessMessage('Signed out of Officer Command Center.');
+    setTimeout(() => setActionSuccessMessage(''), 4000);
+  };
+
+  const quickLoginAsRole = (demoRole) => {
+    setCurrentRole(demoRole.role);
+    setOfficerLoginForm({
+      email: demoRole.email,
+      password: demoRole.password,
+      bureau: demoRole.bureau,
+      showPassword: false
+    });
+    setIsOfficerLoggedIn(true);
+    setOfficerLoginError('');
+    try {
+      sessionStorage.setItem('aicte_officer_logged_in', 'true');
+    } catch (err) {}
+    playNotificationChime();
+    setActionSuccessMessage(`⚡ Auto-filled & authenticated as ${demoRole.role}!`);
+    setTimeout(() => setActionSuccessMessage(''), 5000);
+  };
+
   // Filters state
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBureau, setSelectedBureau] = useState('All Bureaus');
@@ -292,6 +395,10 @@ export default function App() {
 
   // "⚡ Load Demo Case Conflict" Button Handler for Evaluators
   const handleLoadDemoConflict = () => {
+    setIsOfficerLoggedIn(true);
+    try {
+      sessionStorage.setItem('aicte_officer_logged_in', 'true');
+    } catch (err) {}
     const existing = cases.find(c => c.caseReference === 'RB/2026/0995');
     if (!existing) {
       const demoConflictCase = {
@@ -933,6 +1040,31 @@ export default function App() {
               <span>Student Portal</span>
             </button>
           </div>
+
+          {/* Officer Session Controls (Logged in avatar & Sign Out, or Auth Required pill) */}
+          {portalMode === 'officer' && (
+            isOfficerLoggedIn ? (
+              <div className="flex items-center gap-2 pl-1 border-l border-white/10">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/30 text-xs font-mono">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <span className="text-slate-200 font-semibold hidden lg:inline">{currentRole}</span>
+                </div>
+                <button
+                  onClick={handleOfficerLogout}
+                  className="px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-white/10 hover:border-rose-500/30 text-xs font-mono font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                  title="Sign Out of Officer Command"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Sign Out</span>
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-500 text-xs font-mono">
+                <Lock className="w-3 h-3" />
+                <span className="hidden sm:inline font-bold">Login Required</span>
+              </div>
+            )
+          )}
         </div>
       </header>
 
@@ -1096,6 +1228,10 @@ export default function App() {
                         setStudentSuccessReceipt(null);
                         setPortalMode('officer');
                         setActiveTab('command-center');
+                        setIsOfficerLoggedIn(true);
+                        try {
+                          sessionStorage.setItem('aicte_officer_logged_in', 'true');
+                        } catch (err) {}
                         if (caseToOpen) {
                           setSelectedCase(caseToOpen);
                           setActionSuccessMessage(`Inspecting newly registered Student Grievance #${caseToOpen.caseReference}`);
@@ -1516,6 +1652,10 @@ export default function App() {
                           setSelectedCase(foundCase);
                           setPortalMode('officer');
                           setActiveTab('command-center');
+                          setIsOfficerLoggedIn(true);
+                          try {
+                            sessionStorage.setItem('aicte_officer_logged_in', 'true');
+                          } catch (err) {}
                           setActionSuccessMessage(`Inspecting Case #${foundCase.caseReference} in Officer Command Center`);
                           setTimeout(() => setActionSuccessMessage(''), 5000);
                         }}
@@ -1536,9 +1676,233 @@ export default function App() {
       )}
 
       {/* ======================================================== */}
-      {/* MODE B: INTERNAL AICTE OFFICER COMMAND DASHBOARD */}
+      {/* MODE B1: OFFICER SECURE LOGIN PORTAL & DEMO CREDENTIALS DESK */}
       {/* ======================================================== */}
-      {portalMode === 'officer' && (
+      {portalMode === 'officer' && !isOfficerLoggedIn && (
+        <div className="relative z-10 flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-12 space-y-8 animate-in fade-in duration-300">
+          
+          {/* Header Title */}
+          <div className="text-center space-y-3 pt-2">
+            <span className="text-[10px] font-mono tracking-widest text-purple-600 uppercase px-3.5 py-1 rounded-full bg-purple-500/10 border border-purple-500/25 font-bold">
+              OFFICIAL BUREAU ACCESS // SECURE SSO GATEWAY
+            </span>
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#f4f2ec]">
+              AICTE Internal Officer Command Portal
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-400 max-w-xl mx-auto font-light leading-relaxed">
+              Authorized personnel only. Secure single sign-on for the <strong>Regulation Bureau (RB)</strong>, 
+              <strong>Public Grievance Redressal Cell (PGRC)</strong>, and <strong>Regional Directorate</strong>.
+            </p>
+          </div>
+
+          {/* TWO COLUMN GRID: LEFT = LOGIN FORM, RIGHT = DEMO CREDENTIALS DESK */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            
+            {/* LEFT COLUMN: AUTHENTICATION FORM */}
+            <div className="lg:col-span-6 glass-panel rounded-2xl p-6 sm:p-8 space-y-6 shadow-2xl border border-purple-300/30">
+              
+              <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-600">
+                    <Lock className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-mono text-purple-600 uppercase tracking-widest font-bold">
+                      PARICHAY SSO // GOV.IN
+                    </span>
+                    <h2 className="text-base font-bold text-white tracking-tight">Officer Authorization</h2>
+                  </div>
+                </div>
+                <span className="text-[9px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold">
+                  256-BIT ENCRYPTED
+                </span>
+              </div>
+
+              {officerLoginError && (
+                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span>{officerLoginError}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleOfficerLogin} className="space-y-4">
+                
+                {/* Official Email / SSO ID */}
+                <div>
+                  <label className="text-[11px] font-mono uppercase text-slate-400 block mb-1">
+                    Officer Government ID / Email *
+                  </label>
+                  <div className="relative">
+                    <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      required
+                      value={officerLoginForm.email}
+                      onChange={(e) => setOfficerLoginForm({ ...officerLoginForm, email: e.target.value })}
+                      placeholder="e.g. officer.rb@aicte.gov.in"
+                      className="w-full pl-10 pr-4 py-2.5 text-xs bg-[#0c152a] border border-white/10 rounded-xl focus:outline-none focus:border-purple-500 text-white font-mono transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Password Input */}
+                <div>
+                  <label className="text-[11px] font-mono uppercase text-slate-400 block mb-1">
+                    Security Key / Password *
+                  </label>
+                  <div className="relative">
+                    <Key className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type={officerLoginForm.showPassword ? 'text' : 'password'}
+                      required
+                      value={officerLoginForm.password}
+                      onChange={(e) => setOfficerLoginForm({ ...officerLoginForm, password: e.target.value })}
+                      placeholder="••••••••••••"
+                      className="w-full pl-10 pr-10 py-2.5 text-xs bg-[#0c152a] border border-white/10 rounded-xl focus:outline-none focus:border-purple-500 text-white font-mono transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setOfficerLoginForm({ ...officerLoginForm, showPassword: !officerLoginForm.showPassword })}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer"
+                    >
+                      {officerLoginForm.showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Bureau Directorate */}
+                <div>
+                  <label className="text-[11px] font-mono uppercase text-slate-400 block mb-1">
+                    Bureau Directorate Jurisdiction
+                  </label>
+                  <select
+                    value={currentRole}
+                    onChange={(e) => {
+                      setCurrentRole(e.target.value);
+                      const matched = demoOfficerCredentials.find(c => c.role === e.target.value);
+                      if (matched) {
+                        setOfficerLoginForm(prev => ({ ...prev, email: matched.email, password: matched.password, bureau: matched.bureau }));
+                      }
+                    }}
+                    className="w-full px-3.5 py-2.5 text-xs bg-[#0c152a] border border-white/10 rounded-xl focus:outline-none focus:border-purple-500 text-slate-200 font-medium"
+                  >
+                    <option value="Regulation Bureau (RB) Officer" className="bg-[#0c152a]">Regulation Bureau (RB) — Statutory Compliance</option>
+                    <option value="PGRC Grievance Redressal Officer" className="bg-[#0c152a]">Public Grievance Redressal Cell (PGRC)</option>
+                    <option value="Regional Director (South-Western)" className="bg-[#0c152a]">Regional Directorate & Vigilance Cell</option>
+                    <option value="AICTE Member Secretary / Apex View" className="bg-[#0c152a]">AICTE Member Secretary (National Executive)</option>
+                  </select>
+                </div>
+
+                {/* Remember & Notice */}
+                <div className="flex items-center justify-between text-xs pt-1">
+                  <label className="flex items-center gap-2 cursor-pointer text-slate-400 hover:text-slate-300">
+                    <input type="checkbox" defaultChecked className="rounded border-white/20 bg-[#0c152a] text-purple-600 focus:ring-0" />
+                    <span className="text-[11px]">Remember authorized device</span>
+                  </label>
+                  <span className="text-[10px] font-mono text-purple-500 hover:underline cursor-pointer">
+                    NIC OTP Fallback
+                  </span>
+                </div>
+
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  className="w-full py-3 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:brightness-110 text-white font-bold rounded-xl text-xs shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer transform hover:scale-[1.01]"
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>Authorize & Enter Command Center &rarr;</span>
+                </button>
+
+              </form>
+
+              <p className="text-[10px] font-mono text-slate-500 border-t border-white/10 pt-3 leading-relaxed">
+                SEC. 43 IT ACT 2000 // ACCESS LOGGED WITH CLIENT IP & TIMESTAMP ANCHORED IN SHA-256 AUDIT LEDGER.
+              </p>
+
+            </div>
+
+            {/* RIGHT COLUMN: DEMO ACCESS CREDENTIALS DESK */}
+            <div className="lg:col-span-6 space-y-4">
+              
+              <div className="glass-panel rounded-2xl p-6 sm:p-7 space-y-4 shadow-xl border border-purple-300/30">
+                <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500">
+                      <Zap className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-mono text-amber-500 uppercase tracking-widest font-bold">
+                        HACKATHON DEMO DESK
+                      </span>
+                      <h3 className="text-sm font-bold text-white">Live Evaluator Credentials</h3>
+                    </div>
+                  </div>
+                  <span className="text-[9px] font-mono bg-purple-500/10 text-purple-500 border border-purple-500/30 px-2 py-0.5 rounded-full font-bold">
+                    1-CLICK AUTO-FILL
+                  </span>
+                </div>
+
+                <p className="text-xs text-slate-400 font-light leading-relaxed">
+                  For live judging and evaluation, click any officer role below to automatically fill the credentials and sign in directly with that perspective's RBAC privileges.
+                </p>
+
+                {/* Role Cards List */}
+                <div className="space-y-3 pt-1">
+                  {demoOfficerCredentials.map((demo) => (
+                    <div
+                      key={demo.role}
+                      className="p-3.5 rounded-xl border border-white/10 bg-[#0c152a]/80 hover:bg-[#0c152a] hover:border-purple-400/50 transition-all space-y-2.5 shadow-sm group"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-1.5">
+                        <span className="text-xs font-bold text-white group-hover:text-purple-600 transition-colors">
+                          {demo.role}
+                        </span>
+                        <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded-full border ${demo.badgeColor}`}>
+                          {demo.badge}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] font-mono bg-white/[0.03] p-2.5 rounded-lg border border-white/5">
+                        <div>
+                          <span className="text-[9px] text-slate-500 uppercase tracking-wider block">Login ID</span>
+                          <span className="text-slate-300 font-bold select-all">{demo.email}</span>
+                        </div>
+                        <div>
+                          <span className="text-[9px] text-slate-500 uppercase tracking-wider block">Password</span>
+                          <span className="text-slate-300 font-bold select-all">{demo.password}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+                        <span className="text-[10px] text-slate-400 font-light max-w-xs line-clamp-1">
+                          {demo.scope}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => quickLoginAsRole(demo)}
+                          className="px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow transition-all flex items-center gap-1.5 cursor-pointer transform hover:scale-[1.02]"
+                        >
+                          <Zap className="w-3 h-3 fill-current" />
+                          <span>⚡ Auto-Fill & Enter</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* MODE B2: INTERNAL AICTE OFFICER COMMAND DASHBOARD (LOGGED IN) */}
+      {/* ======================================================== */}
+      {portalMode === 'officer' && isOfficerLoggedIn && (
         <>
           {/* EDITORIAL HERO SECTION */}
           <section className="relative z-10 max-w-7xl mx-auto px-6 sm:px-10 pt-10 pb-4 w-full">
