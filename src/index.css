@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    background-color: #070b14;
+    color: #f4f2ec;
+    overflow-x: hidden;
+  }
+}
+
+/* Editorial Glassmorphism (Royal Midnight Obsidian & Sapphire) */
+.glass-panel {
+  background: rgba(11, 18, 33, 0.78);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: 0 20px 45px -15px rgba(2, 6, 18, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.glass-card {
+  background: rgba(14, 22, 40, 0.62);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 25px -5px rgba(2, 6, 18, 0.65);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-card:hover {
+  background: rgba(20, 32, 58, 0.80);
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-2px);
+  box-shadow: 0 20px 35px -10px rgba(2, 6, 18, 0.8);
+}
+
+.molten-border {
+  border-color: rgba(255, 90, 44, 0.45);
+  box-shadow: 0 10px 30px -5px rgba(255, 90, 44, 0.12), inset 0 1px 0 rgba(255, 90, 44, 0.25);
+}
+
+/* Critical SLA breach alert */
+@keyframes criticalPulse {
+  0%, 100% {
+    opacity: 1;
+    border-color: rgba(239, 68, 68, 0.8);
+  }
+  50% {
+    opacity: 0.85;
+    border-color: rgba(239, 68, 68, 0.3);
+  }
+}
+
+.animate-critical {
+  animation: criticalPulse 2s infinite ease-in-out;
+}
+
+/* Custom sleek scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #070b14;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
