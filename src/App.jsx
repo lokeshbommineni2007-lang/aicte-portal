@@ -162,6 +162,19 @@ export default function App() {
   // High-level mode: 'officer' (Internal AICTE Portal) or 'student' (Public Citizen Grievance Portal)
   const [portalMode, setPortalMode] = useState('officer');
   
+  // Visual Theme: 'purple-white' (White & Royal Purple default) or 'midnight-navy'
+  const [theme, setTheme] = useState('purple-white');
+
+  React.useEffect(() => {
+    if (theme === 'purple-white') {
+      document.body.classList.add('theme-purple-white');
+      document.body.classList.remove('theme-midnight-navy');
+    } else {
+      document.body.classList.add('theme-midnight-navy');
+      document.body.classList.remove('theme-purple-white');
+    }
+  }, [theme]);
+  
   // Student Portal Sub-navigation & Tracker state
   const [studentSubTab, setStudentSubTab] = useState('lodge'); // 'lodge' | 'track'
   const [studentTrackQuery, setStudentTrackQuery] = useState('PGRC/2026/0892');
@@ -789,10 +802,12 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen relative flex flex-col font-sans selection:bg-[#ff5a2c] selection:text-white bg-[#070b14] text-[#f4f2ec]">
+    <div className={`min-h-screen relative flex flex-col font-sans selection:bg-[#ff5a2c] selection:text-white transition-colors duration-300 ${
+      theme === 'purple-white' ? 'bg-[#faf8fd] text-slate-900' : 'bg-[#070b14] text-[#f4f2ec]'
+    }`}>
       
       {/* 1. REAL INTERACTIVE PHYSICS CLOTH & CENTERED HALFTONE BRAIN */}
-      <InteractiveCanvas />
+      <InteractiveCanvas theme={theme} />
 
       {/* SUCCESS TOAST NOTIFICATION */}
       {actionSuccessMessage && (
@@ -864,6 +879,34 @@ export default function App() {
               </span>
             )}
           </button>
+
+          {/* Theme Switcher (White & Purple vs Midnight Navy) */}
+          <div className="inline-flex bg-[#0c152a] p-1 rounded-full border border-white/10 shadow-inner">
+            <button
+              onClick={() => setTheme('purple-white')}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all cursor-pointer flex items-center gap-1.5 ${
+                theme === 'purple-white'
+                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="Switch to White & Purple Theme"
+            >
+              <span className="w-2 h-2 rounded-full bg-purple-300"></span>
+              <span>White & Purple</span>
+            </button>
+            <button
+              onClick={() => setTheme('midnight-navy')}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all cursor-pointer flex items-center gap-1.5 ${
+                theme === 'midnight-navy'
+                  ? 'bg-slate-800 text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="Switch to Midnight Navy Theme"
+            >
+              <span className="w-2 h-2 rounded-full bg-blue-400"></span>
+              <span>Midnight</span>
+            </button>
+          </div>
 
           {/* Mode Switcher Pill */}
           <div className="inline-flex bg-[#0c152a] p-1 rounded-full border border-white/10 shadow-inner">

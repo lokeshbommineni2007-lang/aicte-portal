@@ -8,7 +8,9 @@
   }
 }
 
-/* Editorial Glassmorphism (Royal Midnight Obsidian & Sapphire) */
+/* ======================================================== */
+/* EDITORIAL GLASSMORPHISM (THEME 1: MIDNIGHT OBSIDIAN)     */
+/* ======================================================== */
 .glass-panel {
   background: rgba(11, 18, 33, 0.78);
   backdrop-filter: blur(20px);
@@ -31,6 +33,133 @@
   border-color: rgba(255, 255, 255, 0.18);
   transform: translateY(-2px);
   box-shadow: 0 20px 35px -10px rgba(2, 6, 18, 0.8);
+}
+
+/* ======================================================== */
+/* THEME 2: WHITE & ROYAL PURPLE (PRISTINE RADIANT PALETTE) */
+/* ======================================================== */
+body.theme-purple-white {
+  background-color: #faf5ff !important;
+  color: #1e1b4b !important;
+}
+
+body.theme-purple-white header {
+  background-color: rgba(255, 255, 255, 0.92) !important;
+  border-bottom-color: rgba(216, 180, 254, 0.5) !important;
+}
+
+body.theme-purple-white .glass-panel {
+  background: rgba(255, 255, 255, 0.88) !important;
+  border: 1px solid rgba(192, 132, 252, 0.35) !important;
+  box-shadow: 0 20px 40px -15px rgba(124, 58, 237, 0.08), 0 0 0 1px rgba(243, 232, 255, 0.8), inset 0 1px 0 rgba(255, 255, 255, 1) !important;
+  color: #1e1b4b !important;
+}
+
+body.theme-purple-white .glass-card {
+  background: rgba(255, 255, 255, 0.82) !important;
+  border: 1px solid rgba(216, 180, 254, 0.45) !important;
+  box-shadow: 0 10px 25px -5px rgba(124, 58, 237, 0.06) !important;
+  color: #1e1b4b !important;
+}
+
+body.theme-purple-white .glass-card:hover {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-color: rgba(168, 85, 247, 0.65) !important;
+  box-shadow: 0 16px 35px -8px rgba(124, 58, 237, 0.14) !important;
+}
+
+/* Background class mappings for White & Purple */
+body.theme-purple-white .bg-\[\#070b14\],
+body.theme-purple-white .bg-\[\#070b14\]\/90 {
+  background-color: #faf5ff !important;
+}
+
+body.theme-purple-white .bg-\[\#0c152a\],
+body.theme-purple-white .bg-\[\#0c152a\]\/80,
+body.theme-purple-white .bg-\[\#0c152a\]\/70,
+body.theme-purple-white .bg-\[\#0c152a\]\/90 {
+  background-color: #ffffff !important;
+  border-color: rgba(216, 180, 254, 0.45) !important;
+  color: #1e1b4b !important;
+}
+
+body.theme-purple-white .bg-\[\#090f1e\]\/95,
+body.theme-purple-white .bg-\[\#090f1f\]\/95,
+body.theme-purple-white .bg-\[\#0b1222\],
+body.theme-purple-white .bg-\[\#0c1424\] {
+  background-color: #ffffff !important;
+  color: #1e1b4b !important;
+  border-color: rgba(216, 180, 254, 0.5) !important;
+}
+
+body.theme-purple-white .bg-\[\#070b16\],
+body.theme-purple-white .bg-\[\#070c17\],
+body.theme-purple-white .bg-\[\#080d1a\],
+body.theme-purple-white .bg-\[\#0c1428\]\/80,
+body.theme-purple-white .bg-\[\#0d1628\]\/70,
+body.theme-purple-white .bg-\[\#0d1627\],
+body.theme-purple-white .bg-\[\#090f1f\] {
+  background-color: #faf5ff !important;
+  border-color: rgba(216, 180, 254, 0.4) !important;
+  color: #1e1b4b !important;
+}
+
+/* Typography & Contrast in White & Purple */
+body.theme-purple-white .text-white,
+body.theme-purple-white .text-\[\#f4f2ec\] {
+  color: #1e1b4b !important;
+}
+
+body.theme-purple-white .text-slate-100,
+body.theme-purple-white .text-slate-200,
+body.theme-purple-white .text-slate-300 {
+  color: #334155 !important;
+}
+
+body.theme-purple-white .text-slate-400 {
+  color: #64748b !important;
+}
+
+body.theme-purple-white .text-slate-500 {
+  color: #6b7280 !important;
+}
+
+body.theme-purple-white .border-white\/10,
+body.theme-purple-white .border-white\/15,
+body.theme-purple-white .border-white\/20,
+body.theme-purple-white .border-white\/5 {
+  border-color: rgba(216, 180, 254, 0.4) !important;
+}
+
+body.theme-purple-white .bg-white\/\[0\.04\],
+body.theme-purple-white .bg-white\/\[0\.03\],
+body.theme-purple-white .bg-white\/\[0\.02\],
+body.theme-purple-white .bg-white\/5 {
+  background-color: rgba(243, 232, 255, 0.5) !important;
+}
+
+/* Inputs, Selects, and Textareas */
+body.theme-purple-white input,
+body.theme-purple-white select,
+body.theme-purple-white textarea {
+  background-color: #ffffff !important;
+  color: #1e1b4b !important;
+  border-color: rgba(216, 180, 254, 0.6) !important;
+}
+
+body.theme-purple-white input::placeholder,
+body.theme-purple-white textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+body.theme-purple-white select option {
+  background-color: #ffffff !important;
+  color: #1e1b4b !important;
+}
+
+/* Table Hover in White & Purple */
+body.theme-purple-white tr:hover {
+  background-color: rgba(243, 232, 255, 0.65) !important;
 }
 
 .molten-border {
@@ -68,4 +197,14 @@
 }
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
+}
+
+body.theme-purple-white ::-webkit-scrollbar-track {
+  background: #faf5ff;
+}
+body.theme-purple-white ::-webkit-scrollbar-thumb {
+  background: rgba(168, 85, 247, 0.25);
+}
+body.theme-purple-white ::-webkit-scrollbar-thumb:hover {
+  background: rgba(168, 85, 247, 0.45);
 }

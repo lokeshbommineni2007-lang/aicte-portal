@@ -14,7 +14,7 @@ import React, { useEffect, useRef } from 'react';
  * 6. Cross-Bureau Radar Scanning Waves: 3D holographic pulse rings expanding outward across space.
  * 7. Orbiting Constellation with Magnetic Mouse Resonance.
  */
-export default function InteractiveCanvas() {
+export default function InteractiveCanvas({ theme = 'purple-white' }) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -261,46 +261,89 @@ export default function InteractiveCanvas() {
         }
       }
 
-      // 2. DRAW SOVEREIGN MIDNIGHT NAVY BACKGROUND & CLOTH
-      const bgGrad = ctx.createRadialGradient(
-        width * 0.5, height * 0.38, 60,
-        width * 0.5, height * 0.5, Math.max(width, height) * 0.88
-      );
-      bgGrad.addColorStop(0, '#0e1830'); // Luminous deep midnight sapphire
-      bgGrad.addColorStop(0.45, '#0a1124'); // Sovereign Prussian blue
-      bgGrad.addColorStop(1, '#060a16'); // Deep obsidian royal navy
-      ctx.fillStyle = bgGrad;
-      ctx.fillRect(0, 0, width, height);
+      // 2. DRAW LUXURY WHITE & ROYAL PURPLE or MIDNIGHT NAVY BACKGROUND
+      if (theme === 'purple-white') {
+        const bgGrad = ctx.createRadialGradient(
+          width * 0.5, height * 0.35, 60,
+          width * 0.5, height * 0.5, Math.max(width, height) * 0.90
+        );
+        bgGrad.addColorStop(0, '#ffffff');        // Pure radiant pearl white
+        bgGrad.addColorStop(0.35, '#faf5ff');     // Soft lilac/lavender glow
+        bgGrad.addColorStop(0.70, '#f3e8ff');     // Luminous royal purple tint
+        bgGrad.addColorStop(1, '#ede9fe');        // Ethereal royal amethyst border
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0, 0, width, height);
 
-      // Render Cloth as woven luxury silk mesh
-      ctx.save();
-      for (let y = 0; y < clothRows - 1; y++) {
-        for (let x = 0; x < clothCols - 1; x++) {
-          const idx = y * clothCols + x;
-          const p1 = points[idx];
-          const p2 = points[idx + 1];
-          const p3 = points[idx + clothCols + 1];
-          const p4 = points[idx + clothCols];
+        // Render Cloth as woven purple silk mesh
+        ctx.save();
+        for (let y = 0; y < clothRows - 1; y++) {
+          for (let x = 0; x < clothCols - 1; x++) {
+            const idx = y * clothCols + x;
+            const p1 = points[idx];
+            const p2 = points[idx + 1];
+            const p3 = points[idx + clothCols + 1];
+            const p4 = points[idx + clothCols];
 
-          const foldDepth = Math.sin((p1.x - p1.baseX) * 0.08 + (p1.y - p1.baseY) * 0.08);
+            const foldDepth = Math.sin((p1.x - p1.baseX) * 0.08 + (p1.y - p1.baseY) * 0.08);
 
-          ctx.beginPath();
-          ctx.moveTo(p1.x, p1.y);
-          ctx.lineTo(p2.x, p2.y);
-          ctx.lineTo(p3.x, p3.y);
-          ctx.lineTo(p4.x, p4.y);
-          ctx.closePath();
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.lineTo(p3.x, p3.y);
+            ctx.lineTo(p4.x, p4.y);
+            ctx.closePath();
 
-          const lightness = 0.026 + Math.max(0, foldDepth * 0.04);
-          ctx.fillStyle = `rgba(215, 228, 255, ${lightness})`;
-          ctx.fill();
+            const lightness = 0.045 + Math.max(0, foldDepth * 0.05);
+            ctx.fillStyle = `rgba(168, 85, 247, ${lightness})`;
+            ctx.fill();
 
-          ctx.strokeStyle = `rgba(180, 205, 255, ${0.035 + foldDepth * 0.035})`;
-          ctx.lineWidth = 0.7;
-          ctx.stroke();
+            ctx.strokeStyle = `rgba(147, 51, 234, ${0.08 + foldDepth * 0.06})`;
+            ctx.lineWidth = 0.75;
+            ctx.stroke();
+          }
         }
+        ctx.restore();
+      } else {
+        const bgGrad = ctx.createRadialGradient(
+          width * 0.5, height * 0.38, 60,
+          width * 0.5, height * 0.5, Math.max(width, height) * 0.88
+        );
+        bgGrad.addColorStop(0, '#0e1830'); // Luminous deep midnight sapphire
+        bgGrad.addColorStop(0.45, '#0a1124'); // Sovereign Prussian blue
+        bgGrad.addColorStop(1, '#060a16'); // Deep obsidian royal navy
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0, 0, width, height);
+
+        // Render Cloth as woven luxury silk mesh
+        ctx.save();
+        for (let y = 0; y < clothRows - 1; y++) {
+          for (let x = 0; x < clothCols - 1; x++) {
+            const idx = y * clothCols + x;
+            const p1 = points[idx];
+            const p2 = points[idx + 1];
+            const p3 = points[idx + clothCols + 1];
+            const p4 = points[idx + clothCols];
+
+            const foldDepth = Math.sin((p1.x - p1.baseX) * 0.08 + (p1.y - p1.baseY) * 0.08);
+
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.lineTo(p3.x, p3.y);
+            ctx.lineTo(p4.x, p4.y);
+            ctx.closePath();
+
+            const lightness = 0.026 + Math.max(0, foldDepth * 0.04);
+            ctx.fillStyle = `rgba(215, 228, 255, ${lightness})`;
+            ctx.fill();
+
+            ctx.strokeStyle = `rgba(180, 205, 255, ${0.035 + foldDepth * 0.035})`;
+            ctx.lineWidth = 0.7;
+            ctx.stroke();
+          }
+        }
+        ctx.restore();
       }
-      ctx.restore();
 
       // ========================================================
       // 3. FIXED VIEWPORT 3D AICTE SOVEREIGN COGWHEEL & CHRONOMETER
@@ -349,15 +392,22 @@ export default function InteractiveCanvas() {
       const lightDirX = (mouse.x - centerX) / (width * 0.5);
       const lightDirY = (mouse.y - centerY) / (height * 0.5);
 
-      // Sovereign Golden & Sapphire Aura
+      // Sovereign Golden & Purple Aura
       const auraGradient = ctx.createRadialGradient(
         centerX, centerY, 65 * emblemScale,
         centerX, centerY, 340 * emblemScale
       );
-      auraGradient.addColorStop(0, 'rgba(245, 158, 11, 0.22)');
-      auraGradient.addColorStop(0.45, 'rgba(217, 119, 6, 0.07)');
-      auraGradient.addColorStop(0.75, 'rgba(47, 91, 255, 0.03)');
-      auraGradient.addColorStop(1, 'rgba(10, 11, 14, 0)');
+      if (theme === 'purple-white') {
+        auraGradient.addColorStop(0, 'rgba(245, 158, 11, 0.28)');
+        auraGradient.addColorStop(0.40, 'rgba(168, 85, 247, 0.22)');
+        auraGradient.addColorStop(0.75, 'rgba(124, 58, 237, 0.08)');
+        auraGradient.addColorStop(1, 'rgba(250, 245, 255, 0)');
+      } else {
+        auraGradient.addColorStop(0, 'rgba(245, 158, 11, 0.22)');
+        auraGradient.addColorStop(0.45, 'rgba(217, 119, 6, 0.07)');
+        auraGradient.addColorStop(0.75, 'rgba(47, 91, 255, 0.03)');
+        auraGradient.addColorStop(1, 'rgba(10, 11, 14, 0)');
+      }
       ctx.fillStyle = auraGradient;
       ctx.beginPath();
       ctx.arc(centerX, centerY, 340 * emblemScale, 0, Math.PI * 2);
@@ -398,8 +448,10 @@ export default function InteractiveCanvas() {
         ctx.stroke();
 
         // Delicate outer secondary harmonic wave
-        ctx.strokeStyle = `rgba(47, 91, 255, ${curAlpha * 0.6})`;
-        ctx.lineWidth = 0.6;
+        ctx.strokeStyle = theme === 'purple-white'
+          ? `rgba(147, 51, 234, ${curAlpha * 0.85})`
+          : `rgba(47, 91, 255, ${curAlpha * 0.6})`;
+        ctx.lineWidth = 0.7;
         ctx.stroke();
       });
 
@@ -427,7 +479,9 @@ export default function InteractiveCanvas() {
         if (part.isGold) {
           ctx.fillStyle = `rgba(245, 158, 11, ${alpha})`;
         } else {
-          ctx.fillStyle = `rgba(59, 130, 246, ${alpha * 0.85})`;
+          ctx.fillStyle = theme === 'purple-white'
+            ? `rgba(168, 85, 247, ${alpha * 0.95})`
+            : `rgba(59, 130, 246, ${alpha * 0.85})`;
         }
         ctx.fill();
       });
